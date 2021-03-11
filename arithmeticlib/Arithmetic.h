@@ -69,6 +69,13 @@ public:
     virtual TOperand* calc(TOperand* a, TOperand* b);
 };
 
+class TPow : public TOperation{
+public:
+    TPow(char _d);
+    virtual int priority();
+    virtual TOperand* calc(TOperand* a, TOperand* b);
+};
+
 class TOpenBracket : public TOperation{
 public:
     TOpenBracket(char _d);

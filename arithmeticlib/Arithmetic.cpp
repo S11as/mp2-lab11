@@ -113,6 +113,26 @@ TOperand *TDiv::calc(TOperand *a, TOperand *b) {
     return res;
 }
 
+TPow::TPow(char _d) : TOperation(_d) {}
+
+int TPow::priority() {
+    return 4;
+}
+
+TOperand *TPow::calc(TOperand *a, TOperand *b) {
+    int power = b->get_number();
+    int number = a->get_number();
+    int res = number;
+    if(power == 0){
+        res = 1;
+    }else{
+        for (int i = 1; i < power; ++i) {
+            res *= number;
+        }
+    }
+    return new TNum(res);
+}
+
 
 TOpenBracket::TOpenBracket(char _d) : TOperation(_d) {}
 
@@ -184,6 +204,8 @@ TOperation *TOperandFactory::generate_operation(char operation) {
             return new TMul(operation);
         case '/':
             return new TDiv(operation);
+        case '^':
+            return new TPow(operation);
         default:
             return nullptr;
     }
