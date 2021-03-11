@@ -3,7 +3,6 @@
 //
 
 #include "Operations.h"
-
 bool TOperand::is_function() {
     return false;
 }

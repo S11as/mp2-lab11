@@ -1,7 +1,7 @@
 #include "Arithmetic.h"
 
 #include <gtest.h>
-#include "math.h"
+#include "cmath"
 
 TEST(TestSuite, can_calculate_plus) {
     char *ss = "2+2";
