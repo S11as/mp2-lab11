@@ -6,208 +6,87 @@
 #include <cstring>
 #include <iostream>
 #include "Arithmetic.h"
-
-TNum::TNum(int _d) {
-    this->data = _d;
-}
-
-TNum::TNum(TNum &_v) {
-    this->data = _v.data;
-}
-
-int TNum::priority() {
-    return -1;
-}
-
-int TNum::get_number() {
-    return this->data;
-}
-
-char TNum::get_operation() {
-    return -1;
-}
-
-TOperand *TNum::calc(TOperand *a, TOperand *b) {
-    throw "cant calculate a num";
-}
-
-TNum::TNum(char *s) {
-    int i = 0;
-    while (isdigit(s[i])) {
-        i++;
-    }
-    if (s[i] != 0) {
-        throw -1;
-    }
-    this->data = atof(s);
-}
-
-
-TOperation::TOperation(char _d) {
-    this->data = _d;
-}
-
-TOperation::TOperation(TOperation &_v) {
-    this->data = _v.data;
-}
-
-int TOperation::priority() {
-    return -1;
-}
-
-int TOperation::get_number() {
-    return -1;
-}
-
-char TOperation::get_operation() {
-    return this->data;
-}
-
-TOperand *TOperation::calc(TOperand *a, TOperand *b) {
-    throw "cant calculate a num";
-}
-
-TSub::TSub(char _d) : TOperation(_d) {}
-
-int TSub::priority() {
-    return 2;
-}
-
-TOperand *TSub::calc(TOperand *a, TOperand *b) {
-    TNum *res = new TNum(a->get_number() - b->get_number());
-    return res;
-}
-
-TPlus::TPlus(char _d) : TOperation(_d) {}
-
-int TPlus::priority() {
-    return 2;
-}
-
-TOperand *TPlus::calc(TOperand *a, TOperand *b) {
-    TNum *res = new TNum(a->get_number() + b->get_number());
-    return res;
-}
-
-TMul::TMul(char _d) : TOperation(_d) {}
-
-int TMul::priority() {
-    return 3;
-}
-
-TOperand *TMul::calc(TOperand *a, TOperand *b) {
-    TNum *res = new TNum(a->get_number() * b->get_number());
-    return res;
-}
-
-TDiv::TDiv(char _d) : TOperation(_d) {}
-
-int TDiv::priority() {
-    return 3;
-}
-
-TOperand *TDiv::calc(TOperand *a, TOperand *b) {
-    if (b->get_number() == 0)
-        throw "division by 0 error";
-    TNum *res = new TNum(a->get_number() / b->get_number());
-    return res;
-}
-
-TPow::TPow(char _d) : TOperation(_d) {}
-
-int TPow::priority() {
-    return 4;
-}
-
-TOperand *TPow::calc(TOperand *a, TOperand *b) {
-    int power = b->get_number();
-    int number = a->get_number();
-    int res = number;
-    if(power == 0){
-        res = 1;
-    }else{
-        for (int i = 1; i < power; ++i) {
-            res *= number;
-        }
-    }
-    return new TNum(res);
-}
-
-
-TOpenBracket::TOpenBracket(char _d) : TOperation(_d) {}
-
-int TOpenBracket::priority() {
-    return 1;
-}
-
-TOperand *TOpenBracket::calc(TOperand *a, TOperand *b) {
-    throw "open bracket calculation";
-}
-
-TCloseBracket::TCloseBracket(char _d) : TOperation(_d) {}
-
-int TCloseBracket::priority() {
-    return 0;
-}
-
-TOperand *TCloseBracket::calc(TOperand *a, TOperand *b) {
-    throw "close bracket calculation";
-}
-
+#include "Functions.h"
 
 TOperand **TOperandFactory::create(char *s, int &amount) {
     auto **result = new TOperand *[TOperandFactory::define_operand_amount(s)];
     int length = strlen(s);
-    int index = 0;
-    if (!isdigit(s[0])) {
-        result[index] = TOperandFactory::generate_operation(s[0]);
-        index++;
-    }
-    for (int i = 1; i < length; i++) {
-        if (!isdigit(s[i])) {
-            if (isdigit(s[i - 1])) {
-                result[index] = TOperandFactory::generate_number(s, i - 1);
-                index++;
-            }
-            result[index] = TOperandFactory::generate_operation(s[i]);
-            index++;
+    int result_index = 0;
+    int str_index = 0;
+    while(str_index < length){
+        if(TNum::isdigit(s[str_index])){
+            // число
+            result[result_index] = TOperandFactory::generate_number(s, str_index);
+        }else{
+            // не число (функция/операция)
+            result[result_index] = TOperandFactory::generate_operation(s, str_index);
         }
+        result_index++;
     }
-    amount = index;
+    amount = result_index;
     return result;
 }
 
-TNum *TOperandFactory::generate_number(char *s, int index) {
+TNum *TOperandFactory::generate_number(char *s, int& index) {
     char arr[256] = {0};
-    int start = index;
-    while (start >= 0) {
-        if (isdigit(s[start])) start--;
+    int end_of_number = index;
+    int max_length = strlen(s);
+    while (end_of_number < max_length) {
+        if (TNum::isdigit(s[end_of_number])) end_of_number++;
         else break;
     }
-    for (int i = 0; i < index - start; i++) {
-        arr[i] = s[start + 1 + i];
+    for (int i = 0; i < end_of_number - index; i++) {
+        arr[i] = s[index + i];
     }
+    index = end_of_number;
     return new TNum(arr);
 }
 
-TOperation *TOperandFactory::generate_operation(char operation) {
-    switch (operation) {
-        case '(':
-            return new TOpenBracket(operation);
-        case ')':
-            return new TCloseBracket(operation);
-        case '+':
-            return new TPlus(operation);
-        case '-':
-            return new TSub(operation);
-        case '*':
-            return new TMul(operation);
-        case '/':
-            return new TDiv(operation);
-        case '^':
-            return new TPow(operation);
-        default:
-            return nullptr;
+TOperand *TOperandFactory::generate_operation(char *s, int &index) {
+    switch (s[index]) {
+        case '(':{
+            index++;
+            return new TOpenBracket("(");
+        }
+        case ')':{
+            index++;
+            return new TCloseBracket(")");
+        }
+        case '+':{
+            index++;
+            return new TPlus("+");
+        }
+        case '-':{
+            index++;
+            return new TSub("-");
+        }
+        case '*':{
+            index++;
+            return new TMul("*");
+        }
+        case '/':{
+            index++;
+            return new TDiv("/");
+        }
+        case '^':{
+            index++;
+            return new TPow("^");
+        }
+        default:{
+            if(TFunction::is_sin(s,index)){
+                index+=3;
+                return new TSin("sin");
+            }else if(TFunction::is_cos(s,index)){
+                index+=3;
+                return new TCos("cos");
+            }else if(TFunction::is_sqrt(s,index)){
+                index+=4;
+                return new TSqrt("sqrt");
+            }
+            else{
+                throw std::invalid_argument(&"invalid character at position "[index]);
+            }
+        }
     }
 }
 
@@ -220,7 +99,7 @@ int TOperandFactory::define_operand_amount(char *s) {
     return (non_digit + 1) * 2 - 1;
 }
 
-int TPolish::calculate(char *s) {
+double TPolish::calculate(char *s) {
     int n = 0;
     TOperand **operands = TOperandFactory::create(s, n);
     auto **result = new TOperand *[n];
@@ -233,9 +112,12 @@ int TPolish::calculate(char *s) {
             result[index] = operands[i];
             index++;
         } else {
-            // знаки операции или скобки
+            // знаки операции или функции или скобки
             if (stack.is_empty()) {
                 //нет других операций
+                stack.push(operands[i]);
+            }else if (operands[i]->is_function()) {
+                // префиксная функция
                 stack.push(operands[i]);
             } else if (priority == 1) {
                 // скобки
@@ -253,13 +135,13 @@ int TPolish::calculate(char *s) {
                     tmp = stack.pop();
                 }
             } else {
-                // операция некоторого приоритета 2, 3 + ...
+                // бинарная операция некоторого приоритета 2, 3 + ...
                 TOperand *current = stack.pop();
                 if (priority > current->priority()) {
                     stack.push(current);
                     stack.push(operands[i]);
                 } else {
-                    while (priority <= current->priority()) {
+                    while (priority <= current->priority() || current->is_function()) {
                         result[index] = current;
                         index++;
                         if (!stack.is_empty()) {
@@ -280,26 +162,28 @@ int TPolish::calculate(char *s) {
         result[index] = current;
         index++;
     }
-    for (int j = 0; j < index; ++j) {
-        std::cout << result[j]->get_number() << " " << result[j]->get_operation() << std::endl;
-    }
     TStack<TOperand*> calc_stack(n);
     for (int k = 0; k < index; ++k) {
         TOperand* current = result[k];
         if(current->priority() == -1){
             // число
             calc_stack.push(current);
+        }else if(current->is_function()){
+            // функция
+            TOperand* a = calc_stack.pop();
+            TOperand* c = current->calc(a);
+            calc_stack.push(c);
         }else{
+            // операция
             TOperand* a = calc_stack.pop();
             TOperand* b = calc_stack.pop();
-            TOperand* c = current->calc(a, b);
+            TOperand* c = current->calc(b, a);
             calc_stack.push(c);
         }
     }
     TOperand* answer = calc_stack.pop();
     delete[] operands;
     delete[] result;
-    std::cout<<answer->get_number()<<std::endl;
     return answer->get_number();
 }
 
