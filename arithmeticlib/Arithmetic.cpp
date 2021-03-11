@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <cstring>
+#include <iostream>
 #include "Arithmetic.h"
 
 TNum::TNum(int _d) {
@@ -23,7 +24,7 @@ int TNum::get_number() {
 }
 
 char TNum::get_operation() {
-    throw "cant get operation of a num";
+    return -1;
 }
 
 TOperand *TNum::calc(TOperand *a, TOperand *b) {
@@ -55,7 +56,7 @@ int TOperation::priority() {
 }
 
 int TOperation::get_number() {
-    throw "cant get a number from operation";
+    return -1;
 }
 
 char TOperation::get_operation() {
@@ -88,13 +89,13 @@ TOperand *TPlus::calc(TOperand *a, TOperand *b) {
     return res;
 }
 
-TMult::TMult(char _d) : TOperation(_d) {}
+TMul::TMul(char _d) : TOperation(_d) {}
 
-int TMult::priority() {
+int TMul::priority() {
     return 3;
 }
 
-TOperand *TMult::calc(TOperand *a, TOperand *b) {
+TOperand *TMul::calc(TOperand *a, TOperand *b) {
     TNum *res = new TNum(a->get_number() * b->get_number());
     return res;
 }
@@ -126,7 +127,7 @@ TOperand *TOpenBracket::calc(TOperand *a, TOperand *b) {
 TCloseBracket::TCloseBracket(char _d) : TOperation(_d) {}
 
 int TCloseBracket::priority() {
-    return 1;
+    return 0;
 }
 
 TOperand *TCloseBracket::calc(TOperand *a, TOperand *b) {
@@ -134,14 +135,148 @@ TOperand *TCloseBracket::calc(TOperand *a, TOperand *b) {
 }
 
 
-TOperand **TOperandFactory::create(char *s, int &non_digit) {
+TOperand **TOperandFactory::create(char *s, int &amount) {
+    auto **result = new TOperand *[TOperandFactory::define_operand_amount(s)];
     int length = strlen(s);
-    for (int i = 0; i < length; i++) {
-        if (isdigit(s[i])) non_digit++;
+    int index = 0;
+    if (!isdigit(s[0])) {
+        result[index] = TOperandFactory::generate_operation(s[0]);
+        index++;
     }
-    int operands = (non_digit + 1) * 2 - 1;
-    auto** result = new TOperand*[operands];
-    int start = 0;
-    int j = 0;
+    for (int i = 1; i < length; i++) {
+        if (!isdigit(s[i])) {
+            if (isdigit(s[i - 1])) {
+                result[index] = TOperandFactory::generate_number(s, i - 1);
+                index++;
+            }
+            result[index] = TOperandFactory::generate_operation(s[i]);
+            index++;
+        }
+    }
+    amount = index;
+    return result;
+}
 
+TNum *TOperandFactory::generate_number(char *s, int index) {
+    char arr[256] = {0};
+    int start = index;
+    while (start >= 0) {
+        if (isdigit(s[start])) start--;
+        else break;
+    }
+    for (int i = 0; i < index - start; i++) {
+        arr[i] = s[start + 1 + i];
+    }
+    return new TNum(arr);
+}
+
+TOperation *TOperandFactory::generate_operation(char operation) {
+    switch (operation) {
+        case '(':
+            return new TOpenBracket(operation);
+        case ')':
+            return new TCloseBracket(operation);
+        case '+':
+            return new TPlus(operation);
+        case '-':
+            return new TSub(operation);
+        case '*':
+            return new TMul(operation);
+        case '/':
+            return new TDiv(operation);
+        default:
+            return nullptr;
+    }
+}
+
+int TOperandFactory::define_operand_amount(char *s) {
+    int length = strlen(s);
+    int non_digit = 0;
+    for (int i = 0; i < length; i++) {
+        if (!isdigit(s[i])) non_digit++;
+    }
+    return (non_digit + 1) * 2 - 1;
+}
+
+int TPolish::calculate(char *s) {
+    int n = 0;
+    TOperand **operands = TOperandFactory::create(s, n);
+    auto **result = new TOperand *[n];
+    TStack<TOperand *> stack(n);
+    int index = 0;
+    for (int i = 0; i < n; ++i) {
+        int priority = operands[i]->priority();
+        if (priority == -1) {
+            // число
+            result[index] = operands[i];
+            index++;
+        } else {
+            // знаки операции или скобки
+            if (stack.is_empty()) {
+                //нет других операций
+                stack.push(operands[i]);
+            } else if (priority == 1) {
+                // скобки
+                // открывающуюся кладем в стек
+                stack.push(operands[i]);
+            } else if (priority == 0) {
+                // скобки
+                // закрывающаяяся - идем по стеку и ищем открывающуююся, закидывая все что перед ней в выходной массив
+                if (stack.is_empty())
+                    throw "braces error";
+                TOperand *tmp = stack.pop();
+                while (tmp->priority() != 1) {
+                    result[index] = tmp;
+                    index++;
+                    tmp = stack.pop();
+                }
+            } else {
+                // операция некоторого приоритета 2, 3 + ...
+                TOperand *current = stack.pop();
+                if (priority > current->priority()) {
+                    stack.push(current);
+                    stack.push(operands[i]);
+                } else {
+                    while (priority <= current->priority()) {
+                        result[index] = current;
+                        index++;
+                        if (!stack.is_empty()) {
+                            current = stack.pop();
+                        } else {
+                            break;
+                        }
+                    }
+                    if (!stack.is_empty())
+                        stack.push(current);
+                    stack.push(operands[i]);
+                }
+            }
+        }
+    }
+    while (!stack.is_empty()) {
+        TOperand *current = stack.pop();
+        result[index] = current;
+        index++;
+    }
+    for (int j = 0; j < index; ++j) {
+        std::cout << result[j]->get_number() << " " << result[j]->get_operation() << std::endl;
+    }
+    TStack<TOperand*> calc_stack(n);
+    for (int k = 0; k < index; ++k) {
+        TOperand* current = result[k];
+        if(current->priority() == -1){
+            // число
+            calc_stack.push(current);
+        }else{
+            TOperand* a = calc_stack.pop();
+            TOperand* b = calc_stack.pop();
+            TOperand* c = current->calc(a, b);
+            calc_stack.push(c);
+        }
+    }
+    TOperand* answer = calc_stack.pop();
+    delete[] operands;
+    delete[] result;
+    std::cout<<answer->get_number()<<std::endl;
+    return answer->get_number();
 }

@@ -5,6 +5,7 @@
 #ifndef ARITHMETICLIB_ARITHMETIC_H
 #define ARITHMETICLIB_ARITHMETIC_H
 #include <cctype>
+#include "Stack.h"
 
 class TOperand{
 public:
@@ -54,9 +55,9 @@ public:
     virtual TOperand* calc(TOperand* a, TOperand* b);
 };
 
-class TMult : public TOperation{
+class TMul : public TOperation{
 public:
-    TMult(char _d);
+    TMul(char _d);
     virtual int priority();
     virtual TOperand* calc(TOperand* a, TOperand* b);
 };
@@ -69,12 +70,14 @@ public:
 };
 
 class TOpenBracket : public TOperation{
+public:
     TOpenBracket(char _d);
     virtual int priority();
     virtual TOperand* calc(TOperand* a, TOperand* b);
 };
 
 class TCloseBracket : public TOperation{
+public:
     TCloseBracket(char _d);
     virtual int priority();
     virtual TOperand* calc(TOperand* a, TOperand* b);
@@ -83,6 +86,14 @@ class TCloseBracket : public TOperation{
 class TOperandFactory{
 public:
     static TOperand** create(char* s, int& n);
+    static TNum* generate_number(char* s, int index);
+    static TOperation* generate_operation(char operation);
+    static int define_operand_amount(char* s);
+};
+
+class TPolish{
+public:
+    static int calculate(char* s);
 };
 
 #endif //ARITHMETICLIB_ARITHMETIC_H
