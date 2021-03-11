@@ -94,6 +94,8 @@ public:
 class TPolish{
 public:
     static int calculate(char* s);
+    static void save(string name, char* s);
+    static char* load(string name);
 };
 
 #endif //ARITHMETICLIB_ARITHMETIC_H

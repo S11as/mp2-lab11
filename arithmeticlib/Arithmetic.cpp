@@ -280,3 +280,33 @@ int TPolish::calculate(char *s) {
     std::cout<<answer->get_number()<<std::endl;
     return answer->get_number();
 }
+
+void TPolish::save(string name, char *s) {
+    fstream file;
+    file.open(name, fstream::out);
+    if (!file.is_open())
+        throw "Cant open such file";
+    int n = 0;
+    TOperand** res = TOperandFactory::create(s, n);
+    file<<n<<"\n";
+    for (int i = 0; i < n; i++)
+        if (res[i]->priority() == -1)
+            file << res[i]->get_number();
+        else
+            file << res[i]->get_operation();
+    file.close();
+}
+
+char* TPolish::load(string name) {
+    std::ifstream file;
+    file.open(name, std::fstream::in);
+    if (!file.is_open())
+        throw "Cant open such file";
+    int n;
+    file>>n;
+    char* s = new char[n];
+    for (int i = 0; i < n; ++i) {
+        file>>s[i];
+    }
+    return s;
+}
